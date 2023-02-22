@@ -13,10 +13,15 @@ const Review = require('./models/review');
 const methodOverride = require('method-override');
 const review = require('./models/review');
 
+const passport = require('passport');
+const LocalStrategy = require('passport-local')
+const User = require('./models/user');
+
 
 //routers for module exports
-const campgrounds = require('./routes/campgrounds');
-const reviews = require('./routes/reviews')
+const userRoutes = require('./routes/users')
+const campgroundRoutes = require('./routes/campgrounds');
+const reviewRoutes = require('./routes/reviews')
 
 mongoose.set('strictQuery', false);
 // alternate connect method --->  mongodb://127.0.0.1:27017
@@ -55,6 +60,13 @@ const sessionConfig = {
 app.use(session(sessionConfig));
 app.use(flash());
 
+app.use(passport.initialize());
+app.use(passport.session());
+passport.use(new LocalStrategy(User.authenticate()));
+
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
+
 
 // middleware for every single request
 app.use((req, res, next) => {
@@ -63,8 +75,18 @@ app.use((req, res, next) => {
     next();
 })
 
-app.use('/campgrounds', campgrounds);
-app.use('/campgrounds/:id/reviews', reviews)
+app.get('/fakeUser', async (req, res) => {
+    const user = new User({
+        email: 'kev@gmail.com',
+        username: 'kev'
+    });
+    const newUser = await User.register(user, 'chicken');
+    res.send(newUser);
+})
+
+app.use('/', userRoutes);
+app.use('/campgrounds', campgroundRoutes);
+app.use('/campgrounds/:id/reviews', reviewRoutes)
 
 app.get('/', (req, res) => {
     res.render('home');
