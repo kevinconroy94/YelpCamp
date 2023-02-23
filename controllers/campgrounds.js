@@ -1,0 +1,74 @@
+const Campground = require('../models/campground');
+
+module.exports.index = async (req, res) => {
+    const campgrounds = await Campground.find({});
+    res.render('campgrounds/index', { campgrounds });
+}
+
+module.exports.renderNewForm = (req, res) => {
+
+    //coming from passport
+    // this is logic to authenicate 
+    // and it will be moved to a middleware file, 
+    // which we can use for any route we want to protect
+    // if(!req.isAuthenticated()) {
+    //     req.flash('error', 'You must be signed in');
+    //     return res.redirect('/login');
+    // }
+    res.render('campgrounds/new');
+}
+
+module.exports.createCampground = async (req, res, next) => {
+    // if(!req.body.campground) throw new ExpressError('Invalid campground data', 400);
+    const campground = new Campground(req.body.campground);
+    // We associate the user that is logged in with the newly made campground
+    campground.author = req.user._id;
+    await campground.save();
+    req.flash('success', 'Successfully made new campground.');
+    res.redirect(`/campgrounds/${campground._id}`);
+}
+
+module.exports.showCampground = async (req, res) => {
+    const campground = await Campground.findById(req.params.id).populate({
+        path: 'reviews',
+        populate: 'author'
+    }).populate('author');
+    if(!campground){
+        req.flash('error', 'No campground found');
+        return res.redirect('/campgrounds');
+    }
+    res.render('campgrounds/show', { campground });
+}
+
+module.exports.renderEditForm = async (req, res) => {
+    const { id } = req.params;
+    const campground = await Campground.findById(id);
+    if(!campground){
+        req.flash('error', 'No campground found');
+        return res.redirect('/campgrounds');
+    }
+    res.render('campgrounds/edit', { campground });
+}
+
+module.exports.updateCampground = async (req, res) => {
+    
+    const { id } = req.params;
+
+    // Authorization Logic to be put in a middleware
+    // const campground = await Campground.findById(id);
+    // if (!campground.author.equals(req.user.id)){
+    //     req.flash('error', 'You do not have permission to do that');
+    //     return res.redirect(`/campgrounds/${id}`);
+    // };
+
+    const campground = await Campground.findByIdAndUpdate(id, { ...req.body.campground });
+    req.flash('success', 'Successfully updated campground')
+    res.redirect(`/campgrounds/${campground._id}`);
+}
+
+module.exports.deleteCampground = async (req, res) => {
+    const { id } = req.params;
+    await Campground.findByIdAndDelete(id);
+    req.flash('success', 'Successfully deleted campground');
+    res.redirect('/campgrounds');
+}
