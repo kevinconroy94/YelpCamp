@@ -19,6 +19,6 @@ router.get('/:id/edit', isLoggedIn, isAuthor, catchAsync(campgrounds.renderEditF
 
 router.put('/:id', isLoggedIn, isAuthor, validateCampground, catchAsync(campgrounds.updateCampground));
 
-router.delete('/:id', isLoggedIn, catchAsync(campgrounds.deleteCampground));
+router.delete('/:id', isLoggedIn, isAuthor, catchAsync(campgrounds.deleteCampground));
 
 module.exports = router;
