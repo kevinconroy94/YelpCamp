@@ -2,6 +2,7 @@ if (process.env.NODE_ENV !== 'production') {
     require('dotenv').config();
 }
 
+
 // require('dotenv').config();
 
 //console.log(process.env.SECRET);
@@ -32,11 +33,18 @@ const helmet = require('helmet');
 //routers for module exports
 const userRoutes = require('./routes/users')
 const campgroundRoutes = require('./routes/campgrounds');
-const reviewRoutes = require('./routes/reviews')
+const reviewRoutes = require('./routes/reviews');
+
+const MongoStore = require('connect-mongo');
+// const MongoDBStore = require('connect-mongo')(session);
+
+// MONGO URL
+const dbUrl = process.env.DB_URL || 'mongodb://localhost:27017/yelp-camp';
 
 mongoose.set('strictQuery', false);
 // alternate connect method --->  mongodb://127.0.0.1:27017
-mongoose.connect('mongodb://localhost:27017/yelp-camp', {
+mongoose.connect(dbUrl, {
+//mongoose.connect(dbUrl, {
     useNewUrlParser: true,
     useUnifiedTopology: true
 });
@@ -60,9 +68,22 @@ app.use(express.static(path.join(__dirname, 'public')));
 // To remove data using these defaults:
 app.use(mongoSanitize());
 
+const secret = process.env.SECRET || 'thisshouldbeabettersecret';
+
+const store = MongoStore.create({
+    mongoUrl: dbUrl,
+    secret,
+    touchAfter: 24 * 60 * 60
+});
+
+store.on('error', function(error) {
+    console.log('Session Store Error', error);
+});
+
 const sessionConfig = {
+    store,
     name: 'session', // should be something unique or different to protect cookies
-    secret: 'thisshouldbeabettersecret',
+    secret,
     resave: false,
     saveUninitialized: true,
     cookie: {
@@ -144,7 +165,7 @@ passport.deserializeUser(User.deserializeUser());
 
 // middleware for every single request
 app.use((req, res, next) => {
-    console.log(req.query)
+    //console.log(req.query)
     // will have access to currentUser in all templates
     // console.log(req.session);
     res.locals.currentUser = req.user;
